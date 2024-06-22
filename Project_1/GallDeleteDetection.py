@@ -10,8 +10,20 @@ import os
 from GallPostWrite import *
 
 
+def OpenJson(filename):
+    with open(filename, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def SaveJSON(filename, data):
+    with open(filename, "w", encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
+
+
+# 디시인사이드 로그인 계정
+DCLoginAccount = OpenJson("login.json")
+
 driver = SeleniumSettings()
-driver = DCLogin(driver, "ID", "PASSWORD")
+driver = DCLogin(driver, DCLoginAccount["login id"], DCLoginAccount["login password"])
 
 def CurrentTime():
     dt = datetime.datetime.now()
@@ -27,14 +39,6 @@ def CurrentTime():
         hour = 12
     
     return dt.strftime(f"%Y/%m/%d {meridiem} {hour}:%M:%S")
-
-def OpenJson(filename):
-    with open(filename, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-def SaveJSON(filename, data):
-    with open(filename, "w", encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
 
 
 def InitResponse(
@@ -323,7 +327,7 @@ def GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditio
 
 
 RestartDelay = 60 * 5 # 5분 간격으로 수정
-print(f"\n{RestartDelay}초 마다 실행됨\n만약 프로그램을 종료하고 싶다면 'Ctrl+C'를 누르세요.\n")
+print(f"\n{RestartDelay:,.0f}초 (약 {RestartDelay // 60:,.0f}분) 마다 실행됨\n만약 프로그램을 종료하고 싶다면 'Ctrl+C'를 누르세요.\n")
 time.sleep(3)
 print("탐지 시작!")
 
