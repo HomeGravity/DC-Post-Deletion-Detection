@@ -13,7 +13,6 @@ from GallPostWrite import *
 driver = SeleniumSettings()
 driver = DCLogin(driver, "ID", "PASSWORD")
 
-
 def CurrentTime():
     dt = datetime.datetime.now()
     
@@ -231,28 +230,41 @@ def DetectionSettings():
 
 
 # 게시글 탐지 권한을 수정하는 함수
-def DectionSettingsCheck(x1, y1, FileTopic, detection_settings):
+def DectionSettingsCheck(existing_data, x1, y1, FileTopic, detection_settings):
     # 탐지 권한 값이 False이면 탐지를 허용안함으로 판정.
-    if str(x1) in detection_settings:
+    if str(x1) in detection_settings[FileTopic]:
         if detection_settings[FileTopic][str(x1)] == False:
             
             y1["게시글 탐지 권한"] = "Not Allow detection"
-        
+            existing_data[x1]["게시글 탐지 권한"] = "Not Allow detection"
         
         # 탐지 권한 값이 True이면 탐지를 허용함으로 판정.
         elif detection_settings[FileTopic][str(x1)] == True and \
             y1["게시글 탐지 권한"] != "Allow detection":
                 
                 y1["게시글 탐지 권한"] = "Allow detection"
+                existing_data[x1]["게시글 탐지 권한"] = "Allow detection"
+    
 
     # x1이 detection_settings 파일에 없는 경우 예외로 허용함으로 설정.
     else:
-        if  FileTopic not in detection_settings:
+        if FileTopic not in detection_settings:
             detection_settings[FileTopic] = {}
-            
-        detection_settings[FileTopic][str(x1)] = True
+        
+        if str(x1) not in detection_settings[FileTopic]:
+            detection_settings[FileTopic][str(x1)] = True
     
-    return y1, detection_settings
+    return existing_data, y1, detection_settings
+
+
+# 게시글 탐지 권한 데잍터 내림차순 정렬
+def DetectionSettingsDescendingSort(data):
+    sorted_data = {
+    k: dict(sorted(v.items(), key=lambda x: int(x[0]), reverse=True))
+    for k, v in data.items()
+    }
+    
+    return sorted_data
 
 # TEXTMerge 변수에 텍스트 추가 및 출력
 def AddTEXT(y1):
@@ -269,6 +281,7 @@ def GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditio
     if os.path.isfile(FilePath):
 
         TEXTMerge = ""
+        
         existing_data = OpenJson(FilePath)
         detection_settings = DetectionSettings()
         
@@ -287,22 +300,26 @@ def GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditio
                         TEXTMerge += f"\n{x1}번 게시글\n"
                         
                         # 탐지 권한 체크
-                        y1, detection_settings = DectionSettingsCheck(x1, y1, FileTopic, detection_settings)
+                        existing_data, y1, detection_settings = DectionSettingsCheck(existing_data, x1, y1, FileTopic, detection_settings)
                         
                         TEXTMerge += AddTEXT(y1) # 탐지 내역 추가
                         TEXTMerge += "\n" # 줄바꿈
+                        
                         count += 1
 
 
         if count == 0:
             print(f"[{FileTopic} 토픽] 삭제된 게시글이 없음으로 추정.\n")
+        
+        # count 가 0 이 아니면서 이전 내역이랑 동일하지 않을때만
+        if count != 0:
+            # 디시 자동 글쓰기 함수
+            SeleniumLoactionURL(driver, f"[{CurrentTime()}] {FileTopic} - 글삭제 감지 알림", f"{TEXTMerge}", WebURL)
 
-        # 디시 자동 글쓰기 함수
-        SeleniumLoactionURL(driver, f"[{CurrentTime()}] {FileTopic} - 글삭제 감지 알림", f"{TEXTMerge}", WebURL)
-
-        # 변경사항을 저장
-        SaveJSON(FilePath, existing_data)
-        SaveJSON("탐지 권한 설정.json", detection_settings)
+            # 변경사항을 저장
+            SaveJSON(FilePath, existing_data)
+            
+            SaveJSON("탐지 권한 설정.json", DetectionSettingsDescendingSort(detection_settings))
 
 
 RestartDelay = 60 * 5 # 5분 간격으로 수정
