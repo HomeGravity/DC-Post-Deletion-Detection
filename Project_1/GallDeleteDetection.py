@@ -3,51 +3,20 @@ from bs4 import BeautifulSoup
 from AddHeaders import *
 import time
 import numpy as np
-import json
-import datetime
 from pprint import pprint
 import os
 from GallPostWrite import *
-
-
-def OpenJson(filename):
-    with open(filename, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-def SaveJSON(filename, data):
-    with open(filename, "w", encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
-
-
-# 디시인사이드 로그인 계정
-DCLoginAccount = OpenJson("login.json")
-
-driver = SeleniumSettings()
-driver = DCLogin(driver, DCLoginAccount["login id"], DCLoginAccount["login password"])
-
-def CurrentTime():
-    dt = datetime.datetime.now()
-    
-    if dt.hour < 12:
-        meridiem = "오전"
-
-    else:
-        meridiem = "오후"
-    
-    hour = dt.hour % 12
-    if hour == 0:
-        hour = 12
-    
-    return dt.strftime(f"%Y/%m/%d {meridiem} {hour}:%M:%S")
+from basic import *
 
 
 def InitResponse(
     URL,
     WebURL,
+    driver,
     GallDataDict,
     DataSaveTopic,
     definedStartPage, 
-    definedLastPage, 
+    definedLastPage,
     definedBreak
     ):
     
@@ -77,7 +46,7 @@ def InitResponse(
         if response.status_code == 200:
             print(f"[{DataSaveTopic} 토픽] {index} 페이지 완료!")
             
-            Getpropertydata(response.text, GallDataDict, DataSaveTopic, WebURL)
+            Getpropertydata(response.text, GallDataDict, DataSaveTopic, WebURL, driver)
             index += 1
             time.sleep(np.random.uniform(5, 10))
 
@@ -101,7 +70,7 @@ def gall_id(url):
 
     return id_value
 
-def Getpropertydata(source, GallDataDict, DataSaveTopic, WebURL):
+def Getpropertydata(source, GallDataDict, DataSaveTopic, WebURL, driver):
     global breakPoint
     
     soup = BeautifulSoup(source, "lxml")
@@ -177,7 +146,7 @@ def Getpropertydata(source, GallDataDict, DataSaveTopic, WebURL):
         GallDataProcessing(GallDataDict, FilePath)
 
         # 데이터 비교
-        GallDataComparison(GallDataDict, FilePath, DataSaveTopic, LastPostOutputConditions, WebURL)
+        GallDataComparison(GallDataDict, FilePath, DataSaveTopic, LastPostOutputConditions, WebURL, driver)
         
         # 초기화
         GallDataDict = {}
@@ -280,7 +249,7 @@ def AddTEXT(y1):
     return TEXTMerge
 
 # 데이터 비교
-def GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditions, WebURL):
+def GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditions, WebURL, driver):
     
     if os.path.isfile(FilePath):
 
@@ -331,11 +300,20 @@ print(f"\n{RestartDelay:,.0f}초 (약 {RestartDelay // 60:,.0f}분) 마다 실�
 time.sleep(3)
 print("탐지 시작!")
 
+
+# 디시인사이드 로그인 계정
+DCLoginAccount = OpenJson("login.json")
+
+# 디시 게시글 작성 함수
+driver = SeleniumSettings(True)
+driver = DCLogin(driver, DCLoginAccount["login id"], DCLoginAccount["login password"])
+
 while True:
     try:
         InitResponse(
             "https://gall.dcinside.com/mgallery/board/lists/?id=vanced&page=%s&list_num=100&search_head=60", 
             "https://gall.dcinside.com/mgallery/board/modify/?id=vanced&no=4714",
+            driver,
         {}, "질문",
         1, 1, False
         ) # definedBreak 이가 False 이면 definedLastPage 조건이 무효화됨.
@@ -344,6 +322,7 @@ while True:
         InitResponse(
             "https://gall.dcinside.com/mgallery/board/lists/?id=vanced&page=%s&list_num=100&search_head=130", 
             "https://gall.dcinside.com/mgallery/board/modify/?id=vanced&no=4703",
+            driver,
         {}, "핑프",
         1, 2, False
         ) # definedBreak 이가 False 이면 definedLastPage 조건이 무효화됨.

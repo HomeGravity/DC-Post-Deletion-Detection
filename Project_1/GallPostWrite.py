@@ -11,16 +11,21 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 
 # requests 로 구현하다 안되서 selenium 으로 구현
-def SeleniumSettings():
+def SeleniumSettings(HeadlessMod):
     # 셀레니움 설정
     chrome_options = Options()
+    chrome_options.add_argument("disable-blink-features=AutomationControlled")  # 자동화 탐지 방지
     chrome_options.add_experimental_option("detach", True)
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    chrome_options.add_argument("disable-gpu")
-    chrome_options.add_argument("lang=ko")
-    chrome_options.add_argument("window-size=1920x1080")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--lang=ko")
+    chrome_options.add_argument("--window-size=1920x1080")
     chrome_options.add_argument('--disable-dev-shm-usage')
-    chrome_options.add_argument('no-sandbox')
+    chrome_options.add_argument('--no-sandbox')
+    
+    # 헤드리스 모드 활성화 및 비활성화 설정
+    if HeadlessMod:
+        chrome_options.add_argument("headless")
 
     # 헤더스 적용
     for k, v in headers.items():
@@ -67,52 +72,32 @@ def SeleniumLoactionURL(driver, title, desc, url):
     time.sleep(2)
     
     # 타이틀글 입력
-    driver.execute_script(PostTitleInput("")) # 기존 글 삭제
+    driver.find_element(By.ID, "subject").clear()
     time.sleep(1)
-    
     # 원하는 타이틀 입력
-    driver.execute_script(PostTitleInput(title))
+    driver.find_element(By.ID, "subject").send_keys(title)
     
-    # iframe 찾기
-    iframe = driver.find_element(By.TAG_NAME, 'iframe')
-
+    # iframe 찾기 / iframe 를 tag명으로 찾으니 헤드리스 모드에서 오류남.
+    iframe = driver.find_element(By.NAME, 'tx_canvas_wysiwyg')
     # iframe으로 전환
     driver.switch_to.frame(iframe)
     time.sleep(3)
     
     # 설명글 입력
-    driver.execute_script(PostDescriptionInput("")) # 기존 글 삭제
+    driver.find_element(By.CLASS_NAME, "tx-content-container").clear()
     time.sleep(1)
-    
     # 원하는 설명글 입력
     driver.find_element(By.CLASS_NAME, "tx-content-container").send_keys(desc)
-    
-    
     # 기본 페이지로 전환
     driver.switch_to.default_content()
-    
     time.sleep(3)
 
     # 버튼 클릭
-    driver.execute_script(PostButton())
-
-
-
-# 게시글 타이틀글
-def PostTitleInput(text):
-    return "document.getElementById('subject').value = '%s'" % text
-
-# 게시글 설명글
-def PostDescriptionInput(text):
-    return "document.querySelector('.tx-content-container').textContent = `%s`" % text
-
-# 글 템플렛이 완성되면 버튼 클릭
-def PostButton():
-    return 'document.querySelector("#modify > div.btn_box.write.fr > button.btn_blue.write").click();'
+    driver.find_element(By.CSS_SELECTOR, "#modify > div.btn_box.write.fr > button.btn_blue.write").click()
 
 
 if __name__ == '__main__':
-    driver = SeleniumSettings()
+    driver = SeleniumSettings(True)
     driver = DCLogin(driver, "id", "password")
     SeleniumLoactionURL(driver, "질문글", "설명글")
     
