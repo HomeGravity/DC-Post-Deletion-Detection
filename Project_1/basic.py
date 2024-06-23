@@ -44,8 +44,10 @@ def gall_id(url):
     return id_value
 
 
+
+# 지워지지 않는 것도 존재함.
 def OnlyTEXT(text):
-    return re.sub(r'[^a-zA-Z0-9가-힣\s]', '', text)
+    return re.sub(r'[^a-zA-Z0-9가-힣]', '', text)
 
 
 def URLCheck(URL):

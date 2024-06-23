@@ -71,7 +71,14 @@ def Getpropertydata(source, GallDataDict, FileTopic, WebURL, driver):
         # 게시글 번호
         Postcreationnumber = None if (temp := i.find("td", attrs={"class" : "gall_num"})) is None else temp.get_text().strip()
         # 게시글 토픽
-        PostTopic = None if (temp := i.find("td", attrs={"class" : "gall_subject"})) is None else temp.get_text().strip()
+        
+        subject_inner_check = i.find("p", attrs={"class" : "subject_inner"})
+        if subject_inner_check:
+            PostTopic = None if (temp := subject_inner_check) is None else temp.get_text().strip()
+        
+        else:
+            PostTopic = None if (temp := i.find("td", attrs={"class" : "gall_subject"})) is None else temp.get_text().strip()
+        
         # 게시글 이름
         PostTitle = None if (temp := i.find("a")) is None else temp.get_text().strip()
         # 게시글 링크
@@ -94,11 +101,11 @@ def Getpropertydata(source, GallDataDict, FileTopic, WebURL, driver):
         
         
         
-        # 토픽이 설문 또는 공지이면 수집 제외
+        # 토픽이 설문 또는 공지이면 수집 제외, 토픽 속성 수정 필요
         if PostTopic != "설문" and PostTopic != "공지":
             GallDataDict[int(Postcreationnumber)] = {
                 f"게시글 번호": int(Postcreationnumber),
-                f"게시글 토픽": OnlyTEXT(PostTopic).replace("핑핑프", "핑프"),
+                f"게시글 토픽": OnlyTEXT(PostTopic),
                 f"게시글 이름": PostTitle,
                 f"게시글 링크": PostLink,
                 f"게시글 댓글수": PostCommentNumber,
