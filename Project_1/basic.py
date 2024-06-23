@@ -45,7 +45,7 @@ def gall_id(url):
 
 
 def OnlyTEXT(text):
-    return re.sub(r'[^a-zA-Z0-9가-힣]', '', text)
+    return re.sub(r'[^a-zA-Z0-9가-힣\s]', '', text)
 
 
 def URLCheck(URL):

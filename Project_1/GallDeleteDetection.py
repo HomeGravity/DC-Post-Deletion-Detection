@@ -98,7 +98,7 @@ def Getpropertydata(source, GallDataDict, FileTopic, WebURL, driver):
         if PostTopic != "설문" and PostTopic != "공지":
             GallDataDict[int(Postcreationnumber)] = {
                 f"게시글 번호": int(Postcreationnumber),
-                f"게시글 토픽": OnlyTEXT(PostTopic),
+                f"게시글 토픽": OnlyTEXT(PostTopic).replace("핑핑프", "핑프"),
                 f"게시글 이름": PostTitle,
                 f"게시글 링크": PostLink,
                 f"게시글 댓글수": PostCommentNumber,
