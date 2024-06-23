@@ -92,11 +92,13 @@ def Getpropertydata(source, GallDataDict, FileTopic, WebURL, driver):
         # 게시글 추천 수
         PostLiveNumber = None if (temp := i.find("td", attrs={"class": "gall_recommend"})) is None else temp.get_text().strip()
         
+        
+        
         # 토픽이 설문 또는 공지이면 수집 제외
-        if PostTopic != "설문" or PostTopic != "공지":
+        if PostTopic != "설문" and PostTopic != "공지":
             GallDataDict[int(Postcreationnumber)] = {
                 f"게시글 번호": int(Postcreationnumber),
-                f"게시글 토픽": DeleteSymbolOrEmoji(PostTopic).replace("핑핑프", "핑프"),
+                f"게시글 토픽": OnlyTEXT(PostTopic),
                 f"게시글 이름": PostTitle,
                 f"게시글 링크": PostLink,
                 f"게시글 댓글수": PostCommentNumber,
@@ -191,7 +193,7 @@ def CheckPostDeletion(URL):
         Update_Topic = soup.find("span", attrs={"class": "title_headtext"})
         
         # 불필요한 문자 제거
-        CheckResult = DeleteSymbolOrEmoji(Update_Topic.text)
+        CheckResult = OnlyTEXT(Update_Topic.text)
         
     else:
         CheckResult = f"게시글이 삭제됐거나 찾을 수 없음 - Code: {response.status_code}"
