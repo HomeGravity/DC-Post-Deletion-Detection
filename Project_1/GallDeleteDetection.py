@@ -379,6 +379,11 @@ driver = DCLogin(driver, DCLoginAccount["login id"], DCLoginAccount["login passw
 # URL1 = 탐지할 게시글 토픽
 # URL2 = 탐지한 결과를 업데이트할 곳
 
+# 일단 내가 구현할 거
+# 1. 데이터 수집과, 글 작성 대기시간을 분리시킬 것
+# 2. 글 갱신 내역이 이전이랑 동일할 경우 이 경우는 글 갱신을 하지 않을 것
+# 3. 더 나은 페이지 제한 모드 분석 성능
+
 
 while True:
     try:
