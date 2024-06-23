@@ -240,6 +240,9 @@ def DectionSettingsCheck(existing_data, x1, y1, FileTopic, detection_settings):
                     
                     # 삭제됨, 계속 탐지를 허용
                     DetectionText = "Allow detection"
+                    
+                    detection_settings_value = True
+                    
                 
                 else:
                     CheckPostText = f"게시글 토픽이 '{CheckPost}'으로 변경됨"
@@ -247,12 +250,17 @@ def DectionSettingsCheck(existing_data, x1, y1, FileTopic, detection_settings):
                     # 삭제된 건 아님, 계속 탐지를 허용 안 함
                     DetectionText = "Not Allow detection"
                     
+                    detection_settings_value = False
+                    
                 
                 y1["비고"] = CheckPostText
                 existing_data[x1]["비고"] = CheckPostText
                 
                 y1["게시글 탐지 권한"] = DetectionText
                 existing_data[x1]["게시글 탐지 권한"] = DetectionText
+                
+                # 탐지 권한도 업데이트
+                detection_settings[FileTopic][str(x1)] = detection_settings_value
 
 
 
@@ -264,7 +272,7 @@ def DectionSettingsCheck(existing_data, x1, y1, FileTopic, detection_settings):
                 existing_data[x1]["게시글 탐지 권한"] = "Allow detection"
         
     
-    # x1이 detection_settings 파일에 키값 없는 경우 초기값을 허용함으로 설정.
+    # x1이 detection_settings 파일에 키-값이 없는 경우 초기값을 허용함으로 설정.
     else:
         if FileTopic not in detection_settings:
             detection_settings[FileTopic] = {}
