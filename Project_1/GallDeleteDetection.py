@@ -14,7 +14,7 @@ def InitResponse(
     WebURL,
     driver,
     GallDataDict,
-    DataSaveTopic,
+    FileTopic,
     definedStartPage, 
     definedLastPage,
     definedBreak
@@ -27,7 +27,7 @@ def InitResponse(
     index = definedStartPage
     
     if definedStartPage <= 0 or definedLastPage <= 0:
-        print(f"[{DataSaveTopic} 토픽] 시작 & 끝 입력 페이지는 0보다 높아야합니다.")
+        print(f"[{FileTopic} 토픽] 시작 & 끝 입력 페이지는 0보다 높아야합니다.")
         return
     
     if definedBreak:
@@ -44,9 +44,9 @@ def InitResponse(
             breakPoint = False
         
         if response.status_code == 200:
-            print(f"[{DataSaveTopic} 토픽] {index} 페이지 완료!")
+            print(f"[{FileTopic} 토픽] {index} 페이지 완료!")
             
-            Getpropertydata(response.text, GallDataDict, DataSaveTopic, WebURL, driver)
+            Getpropertydata(response.text, GallDataDict, FileTopic, WebURL, driver)
             index += 1
             time.sleep(np.random.uniform(5, 10))
 
@@ -54,23 +54,8 @@ def InitResponse(
             print("break status: " + response.status_code)
             break
 
-def gall_id(url):
-    # '?' 를 기준으로 URL을 분리하여 쿼리 파라미터 부분을 얻는다
-    query_str = url.split('?')[-1]
 
-    # '&'를 기준으로 각 쿼리 파라미터를 분리한다
-    query_params = query_str.split('&')
-
-    # 각 쿼리 파라미터를 순회하며 'id' 파라미터의 값을 찾는다
-    id_value = None
-    for param in query_params:
-        if param.startswith('id='):
-            id_value = param.split('=')[-1]
-            break
-
-    return id_value
-
-def Getpropertydata(source, GallDataDict, DataSaveTopic, WebURL, driver):
+def Getpropertydata(source, GallDataDict, FileTopic, WebURL, driver):
     global breakPoint
     
     soup = BeautifulSoup(source, "lxml")
@@ -107,11 +92,11 @@ def Getpropertydata(source, GallDataDict, DataSaveTopic, WebURL, driver):
         # 게시글 추천 수
         PostLiveNumber = None if (temp := i.find("td", attrs={"class": "gall_recommend"})) is None else temp.get_text().strip()
         
-        # 토픽이 설문이면 수집 제외
-        if PostTopic != "설문":
+        # 토픽이 설문 또는 공지이면 수집 제외
+        if PostTopic != "설문" or PostTopic != "공지":
             GallDataDict[int(Postcreationnumber)] = {
                 f"게시글 번호": int(Postcreationnumber),
-                f"게시글 토픽": PostTopic,
+                f"게시글 토픽": DeleteSymbolOrEmoji(PostTopic).replace("핑핑프", "핑프"),
                 f"게시글 이름": PostTitle,
                 f"게시글 링크": PostLink,
                 f"게시글 댓글수": PostCommentNumber,
@@ -122,7 +107,10 @@ def Getpropertydata(source, GallDataDict, DataSaveTopic, WebURL, driver):
                 f"게시글 조회수": int(PostViewCount),
                 f"게시글 추천수": int(PostLiveNumber),
                 f"게시글 배열번호": PostArr,
-                f"게시글 탐지 권한": "Allow detection"
+                f"게시글 탐지 권한": "Allow detection",
+                f"게시글 수집시간": CurrentTime(),
+                f"게시글 삭제 탐지시간": None,
+                f"비고": None
             }
             
 
@@ -140,13 +128,13 @@ def Getpropertydata(source, GallDataDict, DataSaveTopic, WebURL, driver):
     
     if breakPoint == False:
         # 파일명
-        FilePath = DataSaveTopic + " " +"게시글.json"
+        FilePath = FileTopic + " " +"게시글.json"
         
         # 스크래핑 작업이 종료되면 dataprocessing 작업이 실행됨.
         GallDataProcessing(GallDataDict, FilePath)
 
         # 데이터 비교
-        GallDataComparison(GallDataDict, FilePath, DataSaveTopic, LastPostOutputConditions, WebURL, driver)
+        GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditions, WebURL, driver)
         
         # 초기화
         GallDataDict = {}
@@ -164,8 +152,11 @@ def GallDataProcessing(GallDataDict, FilePath):
             # key 비교, 기존 데이터와 신규 데이터와 비교해서 같은 keys 변경작업을 실행함.
             if str(x1) in existing_data.keys():
                 for x2, y2 in y1.items():
-                    if x2 != "게시글 탐지 권한": # 게시글 탐지 권한은 업데이트 하지 않음.
-                        existing_data[str(x1)][x2] = y2
+                    
+                    # 게시글 탐지 권한, 비고, 게시글 수집시간, 게시글 삭제 탐지시간은 업데이트 하지 않음.
+                    if x2 != "게시글 탐지 권한" or x2 != "비고" or \
+                        x2 != "게시글 수집시간" or x2 != "게시글 삭제 탐지시간":
+                            existing_data[str(x1)][x2] = y2
 
             else:
                 existing_data[x1] = y1
@@ -189,6 +180,24 @@ def GallDataProcessing(GallDataDict, FilePath):
 
     SaveJSON(FilePath, dataSave)
 
+
+
+# 게시글이 삭제됐는지 확인하는 함수
+def CheckPostDeletion(URL):
+    response = requests.get(URL, headers=headers, timeout=10)
+
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.text, "lxml")
+        Update_Topic = soup.find("span", attrs={"class": "title_headtext"})
+        
+        # 불필요한 문자 제거
+        CheckResult = DeleteSymbolOrEmoji(Update_Topic.text)
+        
+    else:
+        CheckResult = f"게시글이 삭제됐거나 찾을 수 없음 - Code: {response.status_code}"
+        
+    return CheckResult
+
 # 탐지 권한 설정을 불러오는 함수
 def DetectionSettings():
     # 파일 처리
@@ -204,28 +213,62 @@ def DetectionSettings():
 
 # 게시글 탐지 권한을 수정하는 함수
 def DectionSettingsCheck(existing_data, x1, y1, FileTopic, detection_settings):
-    # 탐지 권한 값이 False이면 탐지를 허용안함으로 판정.
+    
+    # 리디렉션을 방지하기 위해 쿼리를 추가함.
+    CheckPost = CheckPostDeletion(URLCheck(y1["게시글 링크"]))
+    
+    # detection_settings 에 해당 키값이 있을때만
     if str(x1) in detection_settings[FileTopic]:
-        if detection_settings[FileTopic][str(x1)] == False:
-            
-            y1["게시글 탐지 권한"] = "Not Allow detection"
-            existing_data[x1]["게시글 탐지 권한"] = "Not Allow detection"
         
+        # detection_settings 에 권한 설정 값이 False 또는 CheckPost 가 실행되면
+        if detection_settings[FileTopic][str(x1)] == False or \
+            CheckPost is not None:
+            
+                # 게시글 토픽이 변경된건 삭제된게 아니니 삭제판정을 하지않지만, 
+                # 진짜로 삭제판정된건 계속 탐지를 하겠다.
+                if "Code" in CheckPost:
+                    CheckPostText = CheckPost
+                    
+                    # 삭제됨, 계속 탐지를 허용
+                    DetectionText = "Allow detection"
+                
+                else:
+                    CheckPostText = f"게시글 토픽이 '{CheckPost}'으로 변경됨"
+                    
+                    # 삭제된 건 아님, 계속 탐지를 허용 안 함
+                    DetectionText = "Not Allow detection"
+                    
+                
+                y1["비고"] = CheckPostText
+                existing_data[x1]["비고"] = CheckPostText
+                
+                y1["게시글 탐지 권한"] = DetectionText
+                existing_data[x1]["게시글 탐지 권한"] = DetectionText
+
+
+
         # 탐지 권한 값이 True이면 탐지를 허용함으로 판정.
         elif detection_settings[FileTopic][str(x1)] == True and \
             y1["게시글 탐지 권한"] != "Allow detection":
                 
                 y1["게시글 탐지 권한"] = "Allow detection"
                 existing_data[x1]["게시글 탐지 권한"] = "Allow detection"
+        
     
-
-    # x1이 detection_settings 파일에 없는 경우 예외로 허용함으로 설정.
+    # x1이 detection_settings 파일에 키값 없는 경우 초기값을 허용함으로 설정.
     else:
         if FileTopic not in detection_settings:
             detection_settings[FileTopic] = {}
         
         if str(x1) not in detection_settings[FileTopic]:
             detection_settings[FileTopic][str(x1)] = True
+    
+    
+    # 시간 업데이트
+    if existing_data[x1]["게시글 삭제 탐지시간"] is None:
+        y1["게시글 삭제 탐지시간"] = CurrentTime()
+        existing_data[x1]["게시글 삭제 탐지시간"] = CurrentTime()
+            
     
     return existing_data, y1, detection_settings
 
@@ -246,6 +289,7 @@ def AddTEXT(y1):
         print(f"\t {x2} : {y2}")
         TEXTMerge += f"{x2} : {y2}\n"
     
+    print()
     return TEXTMerge
 
 # 데이터 비교
@@ -259,30 +303,34 @@ def GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditio
         detection_settings = DetectionSettings()
         
         print(f"\n[{FileTopic} 토픽] 삭제된 게시글로 추정되는 게시글을 출력▼")
-
         count = 0
         for x1, y1 in existing_data.items():
             
             # 삭제된 글 출력
             # 게시글 탐지 권한 타입 Allow detection 인것만 출력
-            if int(x1) not in GallDataDict.keys() and \
+            # 기존 100 번째 배열이 다른 페이지로 넘어가면 삭제 됐다고 뜨는 것을 방지, 페이지 제한모드에서는 100으로 설정하고 전체 페이지 모드에서는 0으로 설정
+            if int(x1) not in GallDataDict and \
                 y1["게시글 탐지 권한"] == "Allow detection" and \
-                    y1["게시글 배열번호"] != LastPostOutputConditions: # 기존 100 번째 배열이 다른 페이지로 넘어가면 삭제 됐다고 뜨는 것을 방지, 페이지 제한모드에서는 100으로 설정하고 전체 페이지 모드에서는 0으로 설정
-                    
-                        print(f"\n{x1}번 게시글")
-                        TEXTMerge += f"\n{x1}번 게시글\n"
-                        
-                        # 탐지 권한 체크
-                        existing_data, y1, detection_settings = DectionSettingsCheck(existing_data, x1, y1, FileTopic, detection_settings)
-                        
-                        TEXTMerge += AddTEXT(y1) # 탐지 내역 추가
-                        TEXTMerge += "\n" # 줄바꿈
-                        
-                        count += 1
+                    y1["게시글 배열번호"] != LastPostOutputConditions and \
+                        min(GallDataDict) <= int(x1):
+                            
+                            print(f"\n{x1}번 게시글")
+                            TEXTMerge += f"\n{x1}번 게시글\n"
+                            
+                            # 탐지 권한 체크
+                            existing_data, y1, detection_settings = DectionSettingsCheck(existing_data, x1, y1, FileTopic, detection_settings)
+                            
+                            TEXTMerge += AddTEXT(y1) # 탐지 내역 추가
+                            TEXTMerge += "\n" # 줄바꿈
+                            
+                            count += 1
+                            
+                            time.sleep(np.random.uniform(3, 6))
 
 
         if count == 0:
             print(f"[{FileTopic} 토픽] 삭제된 게시글이 없음으로 추정.\n")
+            TEXTMerge += "\n삭제된 게시글이 없음으로 추정.\n"
         
         # count 가 0 이 아니면서 이전 내역이랑 동일하지 않을때만
         if count != 0:
@@ -295,7 +343,8 @@ def GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditio
             SaveJSON("탐지 권한 설정.json", DetectionSettingsDescendingSort(detection_settings))
 
 
-RestartDelay = 60 * 5 # 5분 간격으로 수정
+
+RestartDelay = 60 * 15 # 15분 간격으로 수정
 print(f"\n{RestartDelay:,.0f}초 (약 {RestartDelay // 60:,.0f}분) 마다 실행됨\n만약 프로그램을 종료하고 싶다면 'Ctrl+C'를 누르세요.\n")
 time.sleep(3)
 print("탐지 시작!")
@@ -305,8 +354,14 @@ print("탐지 시작!")
 DCLoginAccount = OpenJson("login.json")
 
 # 디시 게시글 작성 함수
-driver = SeleniumSettings(True)
+driver = SeleniumSettings(False)
 driver = DCLogin(driver, DCLoginAccount["login id"], DCLoginAccount["login password"])
+
+
+# 마이너 갤러리만 지원함.
+# URL1 = 탐지할 게시글 토픽
+# URL2 = 탐지한 결과를 업데이트할 곳
+
 
 while True:
     try:
@@ -324,10 +379,11 @@ while True:
             "https://gall.dcinside.com/mgallery/board/modify/?id=vanced&no=4703",
             driver,
         {}, "핑프",
-        1, 2, False
+        1, 1, False
         ) # definedBreak 이가 False 이면 definedLastPage 조건이 무효화됨.
         
         time.sleep(RestartDelay)
+        
         
     except KeyboardInterrupt:
         print("프로그램을 종료합니다.")
