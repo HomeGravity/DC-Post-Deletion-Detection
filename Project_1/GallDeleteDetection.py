@@ -213,7 +213,11 @@ def DetectionSettings():
 # 게시글이 삭제됐는지 확인하는 함수
 def CheckPostDeletion(URL):
     response = requests.get(URL, headers=headers, timeout=10)
-    response.raise_for_status()
+    
+    # 게시글이 삭제된 경우 code 404 가 반환됨
+    # 이 경우 raise for status 를 사용하면 오류가 나면서 프로그램이 종료되니 사용하지 않음.
+    
+    # response.raise_for_status()
 
     if response.status_code == 200:
         soup = BeautifulSoup(response.text, "lxml")
@@ -264,50 +268,54 @@ def DeletePostUpdateReturnValue(CheckPost, FileTopic, x1, y1, existing_data, det
 # 게시글 탐지 권한을 수정하는 함수
 def DectionSettingsCheck(existing_data, x1, y1, FileTopic, detection_settings):
     
-    # 리디렉션을 방지하기 위해 쿼리를 추가함.
-    CheckPost = CheckPostDeletion(URLCheck(y1["게시글 링크"]))
-    
-    # detection_settings 에 해당 키값이 있을때만
-    if FileTopic in detection_settings and \
-          str(x1) in detection_settings[FileTopic]:
+    # 404가 반환된 경우 이미 삭제된거라 삭제 확인 요청이 필요없음.
+    if "Code: 404" not in y1["비고"]:
         
-            # detection_settings 에 권한 설정 값이 False 또는 CheckPost 가 실행되면
-            if detection_settings[FileTopic][str(x1)] == False or \
-                CheckPost:
-                
-                # 게시글 삭제 반환 값 업데이트
+        # 리디렉션을 방지하기 위해 쿼리를 추가함.
+        CheckPost = CheckPostDeletion(URLCheck(y1["게시글 링크"]))
+        
+        # detection_settings 에 해당 키값이 있을때만
+        if FileTopic in detection_settings and \
+            str(x1) in detection_settings[FileTopic]:
+            
+                # detection_settings 에 권한 설정 값이 False 또는 CheckPost 가 실행되면
+                if detection_settings[FileTopic][str(x1)] == False or \
+                    CheckPost:
+                    
+                    # 게시글 삭제 반환 값 업데이트
+                    existing_data, y1, detection_settings = \
+                        DeletePostUpdateReturnValue(CheckPost, FileTopic, x1, y1, existing_data, detection_settings)
+                    
+
+                # 탐지 권한 값이 True이면 탐지를 허용함으로 판정.
+                elif detection_settings[FileTopic][str(x1)] == True and \
+                    y1["게시글 탐지 권한"] != "Allow detection":
+                        
+                        y1["게시글 탐지 권한"] = "Allow detection"
+                        existing_data[x1]["게시글 탐지 권한"] = "Allow detection"
+            
+        
+        # x1이 detection_settings 파일에 키-값이 없는 경우 초기값을 허용함으로 설정.
+        else:
+            # 토픽 업데이트
+            if FileTopic not in detection_settings:
+                detection_settings[FileTopic] = {}
+            
+            # 토픽 안에 키 값이 없으면 업데이트
+            if str(x1) not in detection_settings[FileTopic]:
+                # 게시글 ID 값이 탐지 권한 설정.json 에 없으면 삭제 판정 반영이 안됨. 
+                # 그래서 키를 초기화하는 동시에 삭제 판정 반영도 업데이트를 해줌.
+
                 existing_data, y1, detection_settings = \
                     DeletePostUpdateReturnValue(CheckPost, FileTopic, x1, y1, existing_data, detection_settings)
-                
 
-            # 탐지 권한 값이 True이면 탐지를 허용함으로 판정.
-            elif detection_settings[FileTopic][str(x1)] == True and \
-                y1["게시글 탐지 권한"] != "Allow detection":
-                    
-                    y1["게시글 탐지 권한"] = "Allow detection"
-                    existing_data[x1]["게시글 탐지 권한"] = "Allow detection"
-        
+
+        # 시간 업데이트
+        if existing_data[x1]["게시글 삭제 탐지시간"] is None:
+            y1["게시글 삭제 탐지시간"] = CurrentTime()
+            existing_data[x1]["게시글 삭제 탐지시간"] = CurrentTime()
     
-    # x1이 detection_settings 파일에 키-값이 없는 경우 초기값을 허용함으로 설정.
-    else:
-        # 토픽 업데이트
-        if FileTopic not in detection_settings:
-            detection_settings[FileTopic] = {}
-        
-        # 토픽 안에 키 값이 없으면 업데이트
-        if str(x1) not in detection_settings[FileTopic]:
-            # 게시글 ID 값이 탐지 권한 설정.json 에 없으면 삭제 판정 반영이 안됨. 
-            # 그래서 키를 초기화하는 동시에 삭제 판정 반영도 업데이트를 해줌.
-
-            existing_data, y1, detection_settings = \
-                DeletePostUpdateReturnValue(CheckPost, FileTopic, x1, y1, existing_data, detection_settings)
-
-
-    # 시간 업데이트
-    if existing_data[x1]["게시글 삭제 탐지시간"] is None:
-        y1["게시글 삭제 탐지시간"] = CurrentTime()
-        existing_data[x1]["게시글 삭제 탐지시간"] = CurrentTime()
-            
+    
     
     return existing_data, y1, detection_settings
 
@@ -325,7 +333,7 @@ def DetectionSettingsDescendingSort(data):
 def AddTEXT(y1):
     TEXTMerge = ""
     for x2, y2 in y1.items():
-        print(f"\t {x2} : {y2}")
+        print(f"\t{x2} : {y2}")
         TEXTMerge += f"{x2} : {y2}\n"
     
     print()
@@ -401,7 +409,7 @@ def GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditio
 # 2. 셀레니움 ON/OFF 기능 추가
 
 
-TimeMinute = 5 # 5분
+TimeMinute = 10 # 10분
 ReStartDelay = (60 * TimeMinute)
 print(f"\n약 {ReStartDelay:,.0f}초 (약 {ReStartDelay // 60:,.0f}분) 마다 실행됨\n만약 프로그램을 종료하고 싶다면 'Ctrl+C'를 누르세요.")
 
@@ -439,6 +447,7 @@ while True:
         
         # 시간 대기
         time.sleep(ReStartDelay)
+        
         
     except KeyboardInterrupt:
         print("프로그램을 종료합니다.")
