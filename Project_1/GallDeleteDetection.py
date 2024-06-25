@@ -45,7 +45,7 @@ def InitResponse(
         
         if response.status_code == 200:
             RandomTime = np.random.uniform(5, 10)
-            print(f"[{FileTopic} 토픽] - {index} 페이지 완료! - 다음 시작 예상 시간 {RandomTime:.2f} Sec.")
+            print(f"[{FileTopic} 토픽] - {index} 페이지 완료! - 대기시간: {RandomTime:.1f} Sec.")
             
             Getpropertydata(response.text, GallDataDict, FileTopic, WebURL, driver)
             index += 1
@@ -402,14 +402,8 @@ def GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditio
 
 
 TimeMinute = 5 # 5분
-TimeMinuteCorrectionValue = 3 # 3분 유지
-ReStartDelay = (60 * TimeMinute) + (60 * TimeMinuteCorrectionValue) # 첫 실행은 즉시, 이후 실행은 5분 간격 + 보정치 추가
-
-print(f"\n{ReStartDelay:,.0f}초 (약 {ReStartDelay // 60:,.0f}분) 마다 실행됨\n만약 프로그램을 종료하고 싶다면 'Ctrl+C'를 누르세요.")
-
-# 시간 표시용, 시간 계산용
-Next_Run_Time, Next_Run_Time_calculate = NextRunTime(ReStartDelay=ReStartDelay)
-print(f"다음 실행 예상 시간 {Next_Run_Time}\n탐지 시작!")
+ReStartDelay = (60 * TimeMinute)
+print(f"\n약 {ReStartDelay:,.0f}초 (약 {ReStartDelay // 60:,.0f}분) 마다 실행됨\n만약 프로그램을 종료하고 싶다면 'Ctrl+C'를 누르세요.")
 
 
 # 1. 셀레니움 초기화
@@ -418,7 +412,7 @@ print(f"다음 실행 예상 시간 {Next_Run_Time}\n탐지 시작!")
 DCLoginAccount = OpenJson("login.json")
 
 # 1.2 디시 게시글 작성 함수
-driver = SeleniumSettings(False)
+driver = SeleniumSettings(True)
 driver = DCLogin(driver, DCLoginAccount["login id"], DCLoginAccount["login password"])
 # driver = None
 
@@ -444,9 +438,7 @@ while True:
         
         
         # 시간 대기
-        TimeWaiting(Next_Run_Time_calculate)
-            
-        print(f"다음 실행 예상 시간 {NextRunTime(ReStartDelay=ReStartDelay)[0]}")
+        time.sleep(ReStartDelay)
         
     except KeyboardInterrupt:
         print("프로그램을 종료합니다.")

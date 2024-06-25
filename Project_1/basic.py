@@ -28,26 +28,6 @@ def CurrentTime():
     return dt.strftime(f"%Y/%m/%d {meridiem} {hour}:%M:%S")
 
 
-def NextRunTime(ReStartDelay):
-    dt = datetime.datetime.now() + datetime.timedelta(seconds=ReStartDelay)
-    
-    if dt.hour < 12:
-        meridiem = "오전"
-    else:
-        meridiem = "오후"
-    
-    hour = dt.hour % 12
-    if hour == 0:
-        hour = 12
-    
-    # 표시용, 계산용
-    return dt.strftime(f"%Y/%m/%d {meridiem} {hour}:%M:%S"), dt
-
-
-def TimeWaiting(Next_Run_Time_calculate):
-    time_remaining = (Next_Run_Time_calculate - datetime.datetime.now()).total_seconds()
-    if time_remaining > 0:
-        time.sleep(time_remaining)
 
 
 def gall_id(url):
