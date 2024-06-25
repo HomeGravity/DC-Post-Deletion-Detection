@@ -7,7 +7,7 @@ from pprint import pprint
 import os
 from GallPostWrite import *
 from basic import *
-
+from PerformanceMonitor import *
 
 def InitResponse(
     URL,
@@ -44,11 +44,12 @@ def InitResponse(
             breakPoint = False
         
         if response.status_code == 200:
-            print(f"[{FileTopic} 토픽] {index} 페이지 완료!")
+            RandomTime = np.random.uniform(5, 10)
+            print(f"[{FileTopic} 토픽] - {index} 페이지 완료! - 다음 시작 예상 시간 {RandomTime:.2f} Sec.")
             
             Getpropertydata(response.text, GallDataDict, FileTopic, WebURL, driver)
             index += 1
-            time.sleep(np.random.uniform(5, 10))
+            time.sleep(RandomTime)
 
         else:
             print("break status: " + response.status_code)
@@ -163,8 +164,8 @@ def GallDataProcessing(GallDataDict, FilePath):
                 for x2, y2 in y1.items():
                     
                     # 게시글 탐지 권한, 비고, 게시글 수집시간, 게시글 삭제 탐지시간은 업데이트 하지 않음.
-                    if x2 != "게시글 탐지 권한" or x2 != "비고" or \
-                        x2 != "게시글 수집시간" or x2 != "게시글 삭제 탐지시간":
+                    if x2 != "게시글 탐지 권한" and x2 != "비고" and \
+                        x2 != "게시글 수집시간" and x2 != "게시글 삭제 탐지시간":
                             existing_data[str(x1)][x2] = y2
 
             else:
@@ -191,9 +192,28 @@ def GallDataProcessing(GallDataDict, FilePath):
 
 
 
+# 탐지 권한 설정을 불러오는 함수
+def DetectionSettings():
+    # 파일 처리
+    try:
+        detection_settings = OpenJson("탐지 권한 설정.json")
+    
+    # 파일에 아무것도 없을 경우
+    except json.decoder.JSONDecodeError:
+        detection_settings = {}
+    
+    # 파일이 존재하지 않을 경우
+    except FileNotFoundError:
+        detection_settings = {}
+
+    return detection_settings
+
+
+
 # 게시글이 삭제됐는지 확인하는 함수
 def CheckPostDeletion(URL):
     response = requests.get(URL, headers=headers, timeout=10)
+    response.raise_for_status()
 
     if response.status_code == 200:
         soup = BeautifulSoup(response.text, "lxml")
@@ -207,17 +227,38 @@ def CheckPostDeletion(URL):
         
     return CheckResult
 
-# 탐지 권한 설정을 불러오는 함수
-def DetectionSettings():
-    # 파일 처리
-    try:
-        detection_settings = OpenJson("탐지 권한 설정.json")
-    
-    # 파일에 아무것도 없을 경우
-    except json.decoder.JSONDecodeError:
-        detection_settings = {}
 
-    return detection_settings
+
+# 게시글 삭제 반환 값 업데이트를 해주는 함수
+def DeletePostUpdateReturnValue(CheckPost, FileTopic, x1, y1, existing_data, detection_settings):
+    # 게시글 토픽이 변경된건 삭제된게 아니니 삭제판정을 하지않지만, 
+    # 진짜로 삭제판정된건 계속 탐지를 하겠다.
+    if "Code" in CheckPost:
+        CheckPostText = CheckPost
+        
+        # 삭제됨, 계속 탐지를 허용
+        DetectionText = "Allow detection"
+        detection_settings_value = True
+        
+    
+    else:
+        CheckPostText = f"게시글 토픽이 '{CheckPost}'으로 변경됨"
+        
+        # 삭제된 건 아님, 계속 탐지를 허용 안 함
+        DetectionText = "Not Allow detection"
+        detection_settings_value = False
+        
+    
+    y1["비고"] = CheckPostText
+    existing_data[x1]["비고"] = CheckPostText
+
+    y1["게시글 탐지 권한"] = DetectionText
+    existing_data[x1]["게시글 탐지 권한"] = DetectionText
+    
+    # 탐지 권한도 업데이트
+    detection_settings[FileTopic][str(x1)] = detection_settings_value
+
+    return existing_data, y1, detection_settings
 
 
 # 게시글 탐지 권한을 수정하는 함수
@@ -227,60 +268,41 @@ def DectionSettingsCheck(existing_data, x1, y1, FileTopic, detection_settings):
     CheckPost = CheckPostDeletion(URLCheck(y1["게시글 링크"]))
     
     # detection_settings 에 해당 키값이 있을때만
-    if str(x1) in detection_settings[FileTopic]:
+    if FileTopic in detection_settings and \
+          str(x1) in detection_settings[FileTopic]:
         
-        # detection_settings 에 권한 설정 값이 False 또는 CheckPost 가 실행되면
-        if detection_settings[FileTopic][str(x1)] == False or \
-            CheckPost is not None:
-            
-                # 게시글 토픽이 변경된건 삭제된게 아니니 삭제판정을 하지않지만, 
-                # 진짜로 삭제판정된건 계속 탐지를 하겠다.
-                if "Code" in CheckPost:
-                    CheckPostText = CheckPost
-                    
-                    # 삭제됨, 계속 탐지를 허용
-                    DetectionText = "Allow detection"
-                    
-                    detection_settings_value = True
-                    
+            # detection_settings 에 권한 설정 값이 False 또는 CheckPost 가 실행되면
+            if detection_settings[FileTopic][str(x1)] == False or \
+                CheckPost:
                 
-                else:
-                    CheckPostText = f"게시글 토픽이 '{CheckPost}'으로 변경됨"
-                    
-                    # 삭제된 건 아님, 계속 탐지를 허용 안 함
-                    DetectionText = "Not Allow detection"
-                    
-                    detection_settings_value = False
-                    
+                # 게시글 삭제 반환 값 업데이트
+                existing_data, y1, detection_settings = \
+                    DeletePostUpdateReturnValue(CheckPost, FileTopic, x1, y1, existing_data, detection_settings)
                 
-                y1["비고"] = CheckPostText
-                existing_data[x1]["비고"] = CheckPostText
-                
-                y1["게시글 탐지 권한"] = DetectionText
-                existing_data[x1]["게시글 탐지 권한"] = DetectionText
-                
-                # 탐지 권한도 업데이트
-                detection_settings[FileTopic][str(x1)] = detection_settings_value
 
-
-
-        # 탐지 권한 값이 True이면 탐지를 허용함으로 판정.
-        elif detection_settings[FileTopic][str(x1)] == True and \
-            y1["게시글 탐지 권한"] != "Allow detection":
-                
-                y1["게시글 탐지 권한"] = "Allow detection"
-                existing_data[x1]["게시글 탐지 권한"] = "Allow detection"
+            # 탐지 권한 값이 True이면 탐지를 허용함으로 판정.
+            elif detection_settings[FileTopic][str(x1)] == True and \
+                y1["게시글 탐지 권한"] != "Allow detection":
+                    
+                    y1["게시글 탐지 권한"] = "Allow detection"
+                    existing_data[x1]["게시글 탐지 권한"] = "Allow detection"
         
     
     # x1이 detection_settings 파일에 키-값이 없는 경우 초기값을 허용함으로 설정.
     else:
+        # 토픽 업데이트
         if FileTopic not in detection_settings:
             detection_settings[FileTopic] = {}
         
+        # 토픽 안에 키 값이 없으면 업데이트
         if str(x1) not in detection_settings[FileTopic]:
-            detection_settings[FileTopic][str(x1)] = True
-    
-    
+            # 게시글 ID 값이 탐지 권한 설정.json 에 없으면 삭제 판정 반영이 안됨. 
+            # 그래서 키를 초기화하는 동시에 삭제 판정 반영도 업데이트를 해줌.
+
+            existing_data, y1, detection_settings = \
+                DeletePostUpdateReturnValue(CheckPost, FileTopic, x1, y1, existing_data, detection_settings)
+
+
     # 시간 업데이트
     if existing_data[x1]["게시글 삭제 탐지시간"] is None:
         y1["게시글 삭제 탐지시간"] = CurrentTime()
@@ -309,12 +331,17 @@ def AddTEXT(y1):
     print()
     return TEXTMerge
 
+
+
 # 데이터 비교
 def GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditions, WebURL, driver):
-    
+    print()
+
     if os.path.isfile(FilePath):
 
         TEXTMerge = ""
+        # 사용 성능 추가
+        TEXTMerge += UsagePerformanceTEXT()
         
         existing_data = OpenJson(FilePath)
         detection_settings = DetectionSettings()
@@ -361,28 +388,39 @@ def GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditio
 
 
 
-RestartDelay = 60 * 15 # 15분 간격으로 수정
-print(f"\n{RestartDelay:,.0f}초 (약 {RestartDelay // 60:,.0f}분) 마다 실행됨\n만약 프로그램을 종료하고 싶다면 'Ctrl+C'를 누르세요.\n")
-time.sleep(3)
-print("탐지 시작!")
-
-
-# 디시인사이드 로그인 계정
-DCLoginAccount = OpenJson("login.json")
-
-# 디시 게시글 작성 함수
-driver = SeleniumSettings(False)
-driver = DCLogin(driver, DCLoginAccount["login id"], DCLoginAccount["login password"])
-
 
 # 마이너 갤러리만 지원함.
 # URL1 = 탐지할 게시글 토픽
 # URL2 = 탐지한 결과를 업데이트할 곳
 
-# 일단 내가 구현할 거
-# 1. 데이터 수집과, 글 작성 대기시간을 분리시킬 것
-# 2. 글 갱신 내역이 이전이랑 동일할 경우 이 경우는 글 갱신을 하지 않을 것
-# 3. 더 나은 페이지 제한 모드 분석 성능
+# 문제점
+# 게시글 삭제 판정 함수가 잘 작동안함... 조건문이 문제인가 = 해결 된거같긴 하지만.. 좀 더 테스트가 필요함.
+
+# 내가 개선해야 할 것
+# 1. 글 갱신 내역이 이전이랑 동일할 경우 이 경우는 글 갱신을 하지 않을 것
+# 2. 셀레니움 ON/OFF 기능 추가
+
+
+TimeMinute = 5 # 5분
+TimeMinuteCorrectionValue = 3 # 3분 유지
+ReStartDelay = (60 * TimeMinute) + (60 * TimeMinuteCorrectionValue) # 첫 실행은 즉시, 이후 실행은 5분 간격 + 보정치 추가
+
+print(f"\n{ReStartDelay:,.0f}초 (약 {ReStartDelay // 60:,.0f}분) 마다 실행됨\n만약 프로그램을 종료하고 싶다면 'Ctrl+C'를 누르세요.")
+
+# 시간 표시용, 시간 계산용
+Next_Run_Time, Next_Run_Time_calculate = NextRunTime(ReStartDelay=ReStartDelay)
+print(f"다음 실행 예상 시간 {Next_Run_Time}\n탐지 시작!")
+
+
+# 1. 셀레니움 초기화
+
+# 1.1 디시인사이드 로그인 계정
+DCLoginAccount = OpenJson("login.json")
+
+# 1.2 디시 게시글 작성 함수
+driver = SeleniumSettings(False)
+driver = DCLogin(driver, DCLoginAccount["login id"], DCLoginAccount["login password"])
+# driver = None
 
 
 while True:
@@ -404,8 +442,11 @@ while True:
         1, 1, False
         ) # definedBreak 이가 False 이면 definedLastPage 조건이 무효화됨.
         
-        time.sleep(RestartDelay)
         
+        # 시간 대기
+        TimeWaiting(Next_Run_Time_calculate)
+            
+        print(f"다음 실행 예상 시간 {NextRunTime(ReStartDelay=ReStartDelay)[0]}")
         
     except KeyboardInterrupt:
         print("프로그램을 종료합니다.")

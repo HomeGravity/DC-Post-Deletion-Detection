@@ -1,6 +1,7 @@
 import json
 import datetime
 import re
+import time
 
 def OpenJson(filename):
     with open(filename, "r", encoding="utf-8") as f:
@@ -27,6 +28,28 @@ def CurrentTime():
     return dt.strftime(f"%Y/%m/%d {meridiem} {hour}:%M:%S")
 
 
+def NextRunTime(ReStartDelay):
+    dt = datetime.datetime.now() + datetime.timedelta(seconds=ReStartDelay)
+    
+    if dt.hour < 12:
+        meridiem = "오전"
+    else:
+        meridiem = "오후"
+    
+    hour = dt.hour % 12
+    if hour == 0:
+        hour = 12
+    
+    # 표시용, 계산용
+    return dt.strftime(f"%Y/%m/%d {meridiem} {hour}:%M:%S"), dt
+
+
+def TimeWaiting(Next_Run_Time_calculate):
+    time_remaining = (Next_Run_Time_calculate - datetime.datetime.now()).total_seconds()
+    if time_remaining > 0:
+        time.sleep(time_remaining)
+
+
 def gall_id(url):
     # '?' 를 기준으로 URL을 분리하여 쿼리 파라미터 부분을 얻는다
     query_str = url.split('?')[-1]
@@ -45,7 +68,7 @@ def gall_id(url):
 
 
 
-# 지워지지 않는 것도 존재함.
+# 불필요한 텍스트 삭제
 def OnlyTEXT(text):
     return re.sub(r'[^a-zA-Z0-9가-힣]', '', text)
 

@@ -75,36 +75,56 @@ def SeleniumLoactionURL(driver, title, desc, url):
         time.sleep(2)
         
         # 타이틀글 입력
-        driver.find_element(By.ID, "subject").clear()
-        time.sleep(1)
-        # 원하는 타이틀 입력
-        driver.find_element(By.ID, "subject").send_keys(title)
-        
-        # iframe 찾기 / iframe 를 tag명으로 찾으니 헤드리스 모드에서 오류남.
-        iframe = driver.find_element(By.NAME, 'tx_canvas_wysiwyg')
-        # iframe으로 전환
-        driver.switch_to.frame(iframe)
-        time.sleep(3)
+        driver = titleInput(driver, title)
         
         # 설명글 입력
-        driver.find_element(By.CLASS_NAME, "tx-content-container").clear()
-        time.sleep(1)
-        # 원하는 설명글 입력
-        driver.find_element(By.CLASS_NAME, "tx-content-container").send_keys(desc)
-        # 기본 페이지로 전환
-        driver.switch_to.default_content()
-        time.sleep(3)
+        driver = descInput(driver, desc)
 
         # 버튼 클릭
         driver.find_element(By.CSS_SELECTOR, "#modify > div.btn_box.write.fr > button.btn_blue.write").click()
 
     except Exception as e:
+        # 문제 생기면 바로 종료.
         print("예상치 못한 오류 발생\n", e)
         sys.exit(1)
+
+
+# 타이틀글 입력 함수
+def titleInput(driver, title):
+    # 타이틀글 입력
+    title_element = "subject"
+    driver.find_element(By.ID, title_element).clear()
+    time.sleep(1)
+    # 원하는 타이틀 입력
+    driver.find_element(By.ID, title_element).send_keys(title)
+    
+    return driver
+
+
+# 설명글 입력 함수
+def descInput(driver, desc):
+    # iframe 찾기 / iframe 를 tag명으로 찾으니 헤드리스 모드에서 오류남.
+    iframe = driver.find_element(By.NAME, 'tx_canvas_wysiwyg')
+    # iframe으로 전환
+    driver.switch_to.frame(iframe)
+    time.sleep(3)
+    
+    # 설명글 입력
+    desc_element = "tx-content-container"
+    driver.find_element(By.CLASS_NAME, desc_element).clear()
+    time.sleep(1)
+    # 원하는 설명글 입력
+    driver.find_element(By.CLASS_NAME, desc_element).send_keys(desc)
+    # 기본 페이지로 전환
+    driver.switch_to.default_content()
+    time.sleep(3)
+    
+    return driver
+
 
 if __name__ == '__main__':
     driver = SeleniumSettings(True)
     driver = DCLogin(driver, "id", "password")
-    SeleniumLoactionURL(driver, "질문글", "설명글")
+    SeleniumLoactionURL(driver, "질문글", "설명글", "URL")
     
     
