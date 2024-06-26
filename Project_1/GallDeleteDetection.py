@@ -28,14 +28,14 @@ def InitResponse(
     index = definedStartPage
     
     if definedStartPage <= 0 or definedLastPage <= 0:
-        print(f"[{FileTopic} 토픽] 시작 & 끝 입력 페이지는 0보다 높아야합니다.")
+        print(f"[{FileTopic} 토픽] - 시작 & 끝 입력 페이지는 0보다 높아야합니다.")
         return
     
     if definedBreak:
-        print("\n페이지 제한 모드 실행 중...\n")
+        print(f"\n[{FileTopic} 토픽] - 페이지 제한 모드 실행 중...\n")
     
     else:
-        print("\n전체 페이지 모드 실행 중...\n")
+        print(f"\n[{FileTopic} 토픽] - 전체 페이지 모드 실행 중...\n")
     
     while breakPoint:
         response = requests.get(URL % index, headers=headers, timeout=10)
@@ -48,6 +48,7 @@ def InitResponse(
             RandomTime = np.random.uniform(5, 10)
             print(f"[{FileTopic} 토픽] - {index} 페이지 완료! - 대기시간: {RandomTime:.1f} Sec.")
             
+            # 파싱함수
             Getpropertydata(response.text, GallDataDict, FileTopic, WebURL, driver, IsDriverRun)
             index += 1
             time.sleep(RandomTime)
@@ -86,7 +87,7 @@ def Getpropertydata(source, GallDataDict, FileTopic, WebURL, driver, IsDriverRun
         # 게시글 링크
         PostLink = None if (temp := i.find("a")) is None else "https://gall.dcinside.com/" + str(gall_id(temp["href"])) + "/" + str(Postcreationnumber)
         # 게시글 댓글 수
-        PostCommentNumber = 0 if (temp := i.find("span", attrs={"class": "reply_num"})) is None else int(temp.get_text().strip().replace("[", "").replace("]", ""))
+        PostCommentNumber = 0 if (temp := i.find("span", attrs={"class": "reply_num"})) is None else temp.get_text().strip()
         # 사용자 이름
         PostUser = None if (temp := i.find("span", attrs={"class": "nickname"})) is None else temp.get_text().strip()
         # 사용자 식별코드
@@ -106,22 +107,22 @@ def Getpropertydata(source, GallDataDict, FileTopic, WebURL, driver, IsDriverRun
         # 토픽이 설문 또는 공지이면 수집 제외, 토픽 속성 수정 필요
         if PostTopic != "설문" and PostTopic != "공지":
             GallDataDict[int(Postcreationnumber)] = {
-                f"게시글 번호": int(Postcreationnumber),
-                f"게시글 토픽": OnlyTEXT(PostTopic),
-                f"게시글 이름": PostTitle,
-                f"게시글 링크": PostLink,
-                f"게시글 댓글수": PostCommentNumber,
-                f"사용자 이름": PostUser,
-                f"사용자 식별코드": PostUserCode,
-                f"사용자 IP": PostUserIp,
-                f"게시글 작성일": PostDate,
-                f"게시글 조회수": int(PostViewCount),
-                f"게시글 추천수": int(PostLiveNumber),
-                f"게시글 배열번호": PostArr,
-                f"게시글 탐지 권한": "Allow detection",
-                f"게시글 수집시간": CurrentTime(),
-                f"게시글 삭제 탐지시간": None,
-                f"비고": None
+                "게시글 번호": int(Postcreationnumber),
+                "게시글 토픽": OnlyTEXT(PostTopic),
+                "게시글 이름": PostTitle,
+                "게시글 링크": PostLink,
+                "게시글 댓글수": int(OnlyTEXT(str(PostCommentNumber))),
+                "사용자 이름": PostUser,
+                "사용자 식별코드": PostUserCode,
+                "사용자 IP": RemoveBrackets(PostUserIp),
+                "게시글 작성일": PostDate,
+                "게시글 조회수": int(PostViewCount),
+                "게시글 추천수": int(PostLiveNumber),
+                "게시글 배열번호": PostArr,
+                "게시글 탐지 권한": "Allow detection",
+                "게시글 수집시간": CurrentTime(),
+                "게시글 삭제 탐지시간": None,
+                "비고": None
             }
             
 

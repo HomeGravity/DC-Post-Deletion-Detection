@@ -29,7 +29,7 @@ def CurrentTime():
 
 
 
-
+# 쿼리 제거
 def gall_id(url):
     # '?' 를 기준으로 URL을 분리하여 쿼리 파라미터 부분을 얻는다
     query_str = url.split('?')[-1]
@@ -52,6 +52,12 @@ def gall_id(url):
 def OnlyTEXT(text):
     return re.sub(r'[^a-zA-Z0-9가-힣]', '', text)
 
+# IP 괄호는 지우고 마침표는 유지
+def RemoveBrackets(text):
+    if text is not None:
+        return re.sub(r'\(|\)', '', text)
+
+    return None
 
 def URLCheck(URL):
     OriginalURL = URL.split('/')
