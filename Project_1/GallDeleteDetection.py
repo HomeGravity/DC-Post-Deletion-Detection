@@ -18,7 +18,8 @@ def InitResponse(
     definedStartPage, 
     definedLastPage,
     definedBreak,
-    IsDriverRun
+    IsDriverRun,
+    FuncManagement
     ):
     
     # 전역변수 breakpoint
@@ -49,7 +50,7 @@ def InitResponse(
             print(f"[{FileTopic} 토픽] - {index} 페이지 완료! - 대기시간: {RandomTime:.1f} Sec.")
             
             # 파싱함수
-            Getpropertydata(response.text, GallDataDict, FileTopic, WebURL, driver, IsDriverRun)
+            Getpropertydata(response.text, GallDataDict, FileTopic, WebURL, driver, IsDriverRun, FuncManagement)
             index += 1
             time.sleep(RandomTime)
 
@@ -58,7 +59,7 @@ def InitResponse(
             break
 
 
-def Getpropertydata(source, GallDataDict, FileTopic, WebURL, driver, IsDriverRun):
+def Getpropertydata(source, GallDataDict, FileTopic, WebURL, driver, IsDriverRun, FuncManagement):
     global breakPoint
     
     soup = BeautifulSoup(source, "lxml")
@@ -146,7 +147,7 @@ def Getpropertydata(source, GallDataDict, FileTopic, WebURL, driver, IsDriverRun
         GallDataProcessing(GallDataDict, FilePath)
 
         # 데이터 비교
-        GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditions, WebURL, driver, IsDriverRun)
+        GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditions, WebURL, driver, IsDriverRun, FuncManagement)
         
         # 초기화
         GallDataDict = {}
@@ -401,8 +402,7 @@ def TextRecombination(TEXTMerge):
 
 
 # 데이터 비교
-def GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditions, WebURL, driver, IsDriverRun):
-    global TEXTMergeMatch
+def GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditions, WebURL, driver, IsDriverRun, FuncManagement):
 
     if os.path.isfile(FilePath):
 
@@ -440,7 +440,7 @@ def GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditio
             print(f"\n[{FileTopic} 토픽] - 삭제된 게시글이 없음으로 추정.\n")
 
         # count 가 0 이 아니면서 이전 내역이랑 동일하지 않을때만
-        if count != 0 and TEXTMergeMatch[FileTopic] != TEXTMerge:
+        if count != 0 and FuncManagement[FileTopic] != TEXTMerge:
             print(f"[{FileTopic} 토픽] - 디버깅: 중복이 아님을 확인함.\n")
 
             if IsDriverRun:
@@ -453,7 +453,7 @@ def GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditio
             SaveJSON("탐지 권한 설정.json", DetectionSettingsDescendingSort(detection_settings))
 
             # 중복 확인 변수 업데이트 
-            TEXTMergeMatch[FileTopic] = TEXTMerge
+            FuncManagement[FileTopic] = TEXTMerge
         
         # count 값이 0 이어도 중복으로 처리됨.
         else:
@@ -474,7 +474,7 @@ def GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditio
 # 3. 페이지 제한 모드 데이터 제한 기능 개선
 
 
-TimeMinute = 5 # 5분
+TimeMinute = 15 # 15분
 ReStartDelay = (60 * TimeMinute)
 print(f"\n약 {ReStartDelay:,.0f}초 (약 {ReStartDelay // 60:,.0f}분) 마다 실행됨\n만약 프로그램을 종료하고 싶다면 'Ctrl+C'를 누르세요.")
 
@@ -495,11 +495,12 @@ else:
 
 
 
-# 텍스트 중복 확인
-TEXTMergeMatch = {
+# 함수 시작 관리
+FuncManagement = {
     "질문": None,
     "핑프": None
     }
+
 
 # 메인 프로세스 시작
 while True:
@@ -510,7 +511,8 @@ while True:
             driver,
         {}, "질문",
         1, 1, False,
-        IsDriverRun
+        IsDriverRun,
+        FuncManagement
         ) # definedBreak 이가 False 이면 definedLastPage 조건이 무효화됨.
 
 
@@ -520,7 +522,8 @@ while True:
             driver,
         {}, "핑프",
         1, 1, False,
-        IsDriverRun
+        IsDriverRun,
+        FuncManagement
         ) # definedBreak 이가 False 이면 definedLastPage 조건이 무효화됨.
         
         
