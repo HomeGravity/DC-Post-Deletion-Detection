@@ -371,17 +371,13 @@ def DetectionSettingsDescendingSort(data):
     return sorted_data
 
 # TEXTMerge 변수에 텍스트 추가 및 출력
-def AddTEXT(x1, y1, count, FileTopic):
+def AddTEXT(x1, y1):
     
-    # 한번만 출력
-    if count == 0:
-        print(f"\n[{FileTopic} 토픽] - 삭제된 게시글로 추정되는 게시글을 출력▼\n")
-                            
     # 텍스트 초기화
     TEXTMerge = ""
     
     # 번호 출력
-    print(f"{x1}번 게시글")
+    print(f"\n{x1}번 게시글")
     TEXTMerge += f"\n{x1}번 게시글\n"
     
     # 메인 데이터 출력
@@ -413,6 +409,7 @@ def GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditio
         detection_settings = DetectionSettings()
         
         count = 0
+        
         for x1, y1 in existing_data.items():
             
             # 삭제된 글 출력
@@ -423,12 +420,14 @@ def GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditio
                     y1["게시글 배열번호"] != LastPostOutputConditions and \
                         min(GallDataDict) <= int(x1):
                             
+                            if count == 0:
+                                print(f"\n[{FileTopic} 토픽] - 삭제된 게시글로 추정되는 게시글을 출력▼")
+                            
                             
                             # 탐지 권한 체크
                             existing_data, y1, detection_settings = DectionSettingsCheck(existing_data, x1, y1, FileTopic, detection_settings)
                             
-                            
-                            TEXTMerge += AddTEXT(x1, y1, count, FileTopic) # 탐지 내역 추가
+                            TEXTMerge += AddTEXT(x1, y1) # 탐지 내역 추가
                             TEXTMerge += "\n" # 줄바꿈
                             
                             count += 1
@@ -469,9 +468,7 @@ def GallDataComparison(GallDataDict, FilePath, FileTopic, LastPostOutputConditio
 # 게시글 삭제 판정 함수가 잘 작동안함... 조건문이 문제인가 = 해결 된거같긴 하지만.. 좀 더 테스트가 필요함.
 
 # 내가 개선해야 할 것
-# 1. 글 갱신 내역이 이전이랑 동일할 경우 이 경우는 글 갱신을 하지 않을 것 = 추가 완료
-# 2. 셀레니움 ON/OFF 기능 추가 = 추가 완료
-# 3. 페이지 제한 모드 데이터 제한 기능 개선
+# 1. 페이지 제한 모드 데이터 제한 기능 개선
 
 
 TimeMinute = 15 # 15분

@@ -28,6 +28,36 @@ def CurrentTime():
     return dt.strftime(f"%Y/%m/%d {meridiem} {hour}:%M:%S")
 
 
+# 작성일 형식 변경
+def ChangCreationDate(date_text):
+    try:
+        # 연도가 포함된 경우와 포함되지 않은 경우 구분
+        if len(date_text.split(".")) == 3:
+            # 연도, 월일, 시분초가 포함된 경우
+            dt = datetime.datetime.strptime(date_text, "%Y.%m.%d %H:%M:%S")
+        else:
+            # 월일, 시분초만 포함된 경우
+            dt = datetime.datetime.strptime(date_text, "%m.%d %H:%M:%S")
+            # 현재 년도 입력
+            dt = dt.replace(year=datetime.datetime.now().year)
+        
+        # 오전/오후 구분
+        if dt.hour < 12:
+            meridiem = "오전"
+        else:
+            meridiem = "오후"
+        
+        # 12시간제로 변환
+        hour = dt.hour % 12
+        if hour == 0:
+            hour = 12
+        
+        # 지정된 형식으로 변환
+        return dt.strftime(f"%Y/%m/%d {meridiem} {hour}:%M:%S")
+    
+    except ValueError as e:
+        return f"날짜 형식이 올바르지 않습니다. {e}"
+
 
 # 쿼리 제거
 def gall_id(url):
