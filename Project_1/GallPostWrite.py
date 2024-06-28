@@ -9,7 +9,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import sys
-
+from basic import *
 
 # requests 로 구현하다 안되서 selenium 으로 구현
 def SeleniumSettings(HeadlessMod):
@@ -121,10 +121,29 @@ def descInput(driver, desc):
     
     return driver
 
+# 셀레니움 실행함수
+def driverStart(IsDriverRun, HeadlessMod):
+    if IsDriverRun:
+        # 1. 셀레니움 초기화
+
+        # 1.1 디시인사이드 로그인 계정
+        DCLoginAccount = OpenJson("login.json")
+
+        # 1.2 디시 게시글 작성 함수
+        driver = SeleniumSettings(HeadlessMod)
+        driver = DCLogin(driver, DCLoginAccount["login id"], DCLoginAccount["login password"])
+
+    # False 이면 driver 초기화를 필수로 해야하기 때문에 아무 의미도 없는 None로 설정해서 driver를 초기화함.
+    else:
+        driver = None
+
+    return driver, IsDriverRun
 
 if __name__ == '__main__':
-    driver = SeleniumSettings(True)
-    driver = DCLogin(driver, "id", "password")
-    SeleniumLoactionURL(driver, "질문글", "설명글", "URL")
+    driver, IsDriverRun = driverStart(False, False) # 드라이버 실행 여부, 헤드리스 모드 실행 실행
+
+    if IsDriverRun:
+        SeleniumLoactionURL(driver, "title", "desc", "url")
+
     
     

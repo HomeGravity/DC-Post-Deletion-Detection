@@ -60,9 +60,9 @@ def ChangCreationDate(date_text):
 
 
 # 쿼리 제거
-def gall_id(url):
+def GallID(url):
     # '?' 를 기준으로 URL을 분리하여 쿼리 파라미터 부분을 얻는다
-    query_str = url.split('?')[-1]
+    query_str = str(url).lower().split('?')[-1]
 
     # '&'를 기준으로 각 쿼리 파라미터를 분리한다
     query_params = query_str.split('&')
