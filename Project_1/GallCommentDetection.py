@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 from AddHeaders import *
 from pprint import pprint
 import time
+import sys
 import numpy as np
 from basic import *
 
@@ -10,13 +11,18 @@ def InitResponse(url, data, CommentSortType):
     response = requests.get(url, headers=headers)
     response.raise_for_status()
 
-    soup = BeautifulSoup(response.text, "lxml")
-    form = soup.find("form", attrs={"id" : "_view_form_"})
-    hidden = form.find_all("input", attrs={"type" : "hidden"})
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.text, "lxml")
+        form = soup.find("form", attrs={"id" : "_view_form_"})
+        hidden = form.find_all("input", attrs={"type" : "hidden"})
 
-    CommentData(data, hidden, CommentSortType, url)
-    CommentHeadersUpdate(url)
-    CommentResponse(data)
+        CommentData(data, hidden, CommentSortType, url)
+        CommentHeadersUpdate(url)
+        CommentResponse(data)
+    
+    else:
+        print("Error: %s" % response.status_code)
+        sys.exit(1)
 
 
 # 갤러리 타입 지정
@@ -96,11 +102,11 @@ def CommentParseOutputDefinition(CommentsIndex, x1, y1):
     
     if x1 in output_keys:
         indent = "" if int(CommentsIndex["depth"]) == 0 else "\t"
-        print(f"{indent}{OutputkeyManager(x1)} : {OutputValueManager(x1, y1)}")
+        print(f"{indent}{OutputKeyManager(x1)} : {OutputValueManager(x1, y1)}")
 
 
 # 출력키 매니저
-def OutputkeyManager(key):
+def OutputKeyManager(key):
     key_mapping = {
         "user_id": "사용자 ID",
         "name": "사용자 이름",
@@ -148,9 +154,14 @@ def OutputValueLinkParse(value):
     return soup.text
 
 
+# 디시인사이드 게시글의 댓글을 스크래핑 하는 코드
+
 # 내가 지원할 것
 # 스크래핑 데이터를 로컬에 저장으로 재활용
 # 코드 최적화
+
+# 노트
+# 1. 딱히 쓸 곳이 없어서 개발 중단할 수도 있음.
 
 
 # D = 등록순, N = 최신순, R = 답글순

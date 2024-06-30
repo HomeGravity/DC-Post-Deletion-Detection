@@ -50,7 +50,7 @@ def UsagePerformanceTEXT(interval=None):
 
     PerformanceTEXT += "\nCPU 사용량: %s%%\n" % cpu_percent
     PerformanceTEXT += "Memory 사용량: %sMB (%s%%)| 사용 가능한 Memory: %sMB\n" % (0, total_memory_percent, 0)
-    PerformanceTEXT += "Network(송신): %sMB | Network(수신): %sMB\n" % (sent_bytes, recv_bytes)
+    PerformanceTEXT += "Network(송신): %sMB | Network(수신): %sMB\n\n" % (sent_bytes, recv_bytes)
     
     return PerformanceTEXT
 
