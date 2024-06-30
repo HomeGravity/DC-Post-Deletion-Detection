@@ -10,6 +10,10 @@ from GallPostWrite import *
 from basic import *
 from PerformanceMonitor import *
 
+# 상수
+BREAK_POINT = "BreakPoint"
+MAIN_PAGE_INDEX = "MainPageIndex"
+
 
 # 실행 초기화
 def InitResponse(
@@ -26,11 +30,8 @@ def InitResponse(
     ):
     
     # 함수 시작 관리 설정
-    BreakPoint = "BreakPoint"
-    MainPageIndex = "MainPageIndex"
-    
-    FuncManagement[BreakPoint] = True
-    FuncManagement[MainPageIndex] = definedStartPage
+    FuncManagement[BREAK_POINT] = True
+    FuncManagement[MAIN_PAGE_INDEX] = definedStartPage
     
     # 실행 검사
     ExecutionConditions(
@@ -40,7 +41,7 @@ def InitResponse(
         FileTopic
         )
 
-    while FuncManagement[BreakPoint]:
+    while FuncManagement[BREAK_POINT]:
         # 차단 방지를 위해 무작위 지연
         RandomTime = np.random.uniform(5, 10)
         MainExecution(
@@ -89,17 +90,14 @@ def MainExecution(
     ):
     
     try:
-        MainPageIndex = "MainPageIndex"
-        BreakPoint = "BreakPoint"
-        
-        response = requests.get(URL % FuncManagement[MainPageIndex], headers=headers, timeout=10)
+        response = requests.get(URL % FuncManagement[MAIN_PAGE_INDEX], headers=headers, timeout=10)
         response.raise_for_status()
         
-        if FuncManagement[MainPageIndex] == definedLastPage and definedBreak:
-            FuncManagement[BreakPoint] = False
+        if FuncManagement[MAIN_PAGE_INDEX] == definedLastPage and definedBreak:
+            FuncManagement[BREAK_POINT] = False
         
         if response.status_code == 200:
-            print(f"[{FileTopic} 토픽] - {FuncManagement[MainPageIndex]} 페이지 완료! - 대기시간: {RandomTime:.1f} Sec.")
+            print(f"[{FileTopic} 토픽] - {FuncManagement[MAIN_PAGE_INDEX]} 페이지 완료! - 대기시간: {RandomTime:.1f} Sec.")
             
             # 파싱함수 데이터 비교
             Getpropertydata(
@@ -115,7 +113,7 @@ def MainExecution(
                 True
                 )
 
-            FuncManagement[MainPageIndex] += 1
+            FuncManagement[MAIN_PAGE_INDEX] += 1
 
         else:
             # 문제 생기면 바로 종료
@@ -270,13 +268,11 @@ def GallDataExecution(
         ):
     
 
-    BreakPoint = "BreakPoint"
-    
-    if PostArr < 101 and FuncManagement[BreakPoint] == True:
+    if PostArr < 101 and FuncManagement[BREAK_POINT] == True:
         print(f"[{FileTopic} 토픽] - 마지막 페이지로 판단됨으로 실행 코드를 비활성화함.")
-        FuncManagement[BreakPoint] = False
+        FuncManagement[BREAK_POINT] = False
         
-    if FuncManagement[BreakPoint] == False:
+    if FuncManagement[BREAK_POINT] == False:
         # 파일명
         Gall_ID = GallID(URL)
         FilePath = Gall_ID + "_" + FileTopic + "_" +"게시글.json"
@@ -322,7 +318,6 @@ def GallDataProcessing(
         for x1, y1 in GallDataDict.items():
             if str(x1) in existing_data:
                 for x2, y2 in y1.items():
-                    
                     # 제외 키-값
                     if x2 not in ["게시글 탐지 권한", "비고", "게시글 수집시간", "게시글 삭제 탐지시간"]:
                         existing_data[str(x1)][x2] = y2
@@ -390,18 +385,15 @@ def CheckPostDeletion(URL):
 # 삭제 확인 요청 함수
 def CheckPostDeletionCondition(
     y1,
-    FileTopic
     ):
 
     # 비고 값이 None 또는 Code 404가 아닐 때 (ex: 500, 502 등)
     if y1["비고"] is None or \
         "Code: 404" not in y1["비고"]:
-            condition = 1 if y1["비고"] is None else 2
-            print(f"\n[{FileTopic} 토픽] - 디버깅: 삭제 확인 요청 조건문 - {condition}")
+            time.sleep(np.random.uniform(3, 6))
             return CheckPostDeletion(URLCheck(y1["게시글 링크"]))
-    
+        
     # Code가 404일 때
-    print(f"\n[{FileTopic} 토픽] - 디버깅: 삭제 확인 요청 조건문 - 3")
     return y1["비고"]
 
 
@@ -416,14 +408,12 @@ def DeletePostUpdateReturnValue(
     ):
     
     if "Code" in CheckPost:
-        print(f"[{FileTopic} 토픽] - 디버깅: 게시글 삭제 반환 값 업데이트를 해주는 조건문 - 1")
         CheckPostText = CheckPost
         DetectionText = "Allow detection"
         detection_settings_value = True
         
     
     else:
-        print(f"[{FileTopic} 토픽] - 디버깅: 게시글 삭제 반환 값 업데이트를 해주는 조건문 - 2")
         CheckPostText = f"게시글 토픽이 '{CheckPost}'으로 변경됨"
         DetectionText = "Not Allow detection"
         detection_settings_value = False
@@ -440,7 +430,12 @@ def DeletePostUpdateReturnValue(
 
 
 # 시간 업데이트
-def TimeUpdate(existing_data, x1, y1):
+def TimeUpdate(
+    existing_data,
+    x1,
+    y1
+    ):
+    
     # 시간 업데이트
     if existing_data[x1]["게시글 삭제 탐지시간"] is None:
         current_time = CurrentTime()
@@ -459,7 +454,7 @@ def DectionSettingsCheck(
     detection_settings
     ):
     
-    CheckPost = CheckPostDeletionCondition(y1, FileTopic)
+    CheckPost = CheckPostDeletionCondition(y1)
         
     # detection_settings 에 해당 키-값이 있을때만
     if FileTopic in detection_settings and \
@@ -467,7 +462,6 @@ def DectionSettingsCheck(
             
             if detection_settings[FileTopic][str(x1)] == False or \
                 CheckPost:
-                    print(f"[{FileTopic} 토픽] - 디버깅: 게시글 탐지 권한을 수정하는 조건문 - 1-1")
                     existing_data, y1, detection_settings = \
                         DeletePostUpdateReturnValue(
                             CheckPost,
@@ -480,7 +474,6 @@ def DectionSettingsCheck(
                         
             elif detection_settings[FileTopic][str(x1)] == True and \
                 y1["게시글 탐지 권한"] != "Allow detection":
-                    print(f"[{FileTopic} 토픽] - 디버깅: 게시글 탐지 권한을 수정하는 조건문 - 1-2")
                     y1["게시글 탐지 권한"] = "Allow detection"
                     existing_data[x1]["게시글 탐지 권한"] = "Allow detection"
         
@@ -488,14 +481,10 @@ def DectionSettingsCheck(
     else:
         # 토픽 키-값 초기화
         if FileTopic not in detection_settings:
-            print(f"[{FileTopic} 토픽] - 디버깅: 게시글 탐지 권한을 수정하는 조건문 - 2-1")
             detection_settings[FileTopic] = {}
-        
         
         # 토픽 키-값 안에 키-값이 없으면 초기화
         if str(x1) not in detection_settings[FileTopic]:
-            print(f"[{FileTopic} 토픽] - 디버깅: 게시글 탐지 권한을 수정하는 조건문 - 2-2")
-
             existing_data, y1, detection_settings = \
                 DeletePostUpdateReturnValue(
                     CheckPost,
@@ -533,14 +522,13 @@ def AddTEXT(x1, y1):
         line = f"{x2} : {y2}"
         print(f"\t{line}")
         TEXTMerge += f"{line}\n"
-    
-    print()
+        
     return TEXTMerge
 
 # 텍스트 재조합
-def TextRecombination(TEXTMerge):
+def TextRecombination(TEXTMerge, UsagePerformanceTEXT):
     ReTEXTMerge = ""
-    ReTEXTMerge += UsagePerformanceTEXT()
+    ReTEXTMerge += UsagePerformanceTEXT
     ReTEXTMerge += TEXTMerge
 
     return ReTEXTMerge
@@ -585,19 +573,21 @@ def GallDataComparison(
                         
                         TEXTMerge += AddTEXT(x1, y1) + "\n" # 탐지 내역 추가
                         count += 1
-                        time.sleep(np.random.uniform(3, 6))
-
+        
+        
+        Usage_Performance_TEXT = UsagePerformanceTEXT()
+        
         if count == 0:
             print(f"\n[{FileTopic} 토픽] - 삭제된 게시글이 없음으로 추정.\n")
 
         if count != 0 and FuncManagement[FileTopic] != TEXTMerge:
-            print(f"[{FileTopic} 토픽] - 디버깅: 중복이 아님을 확인함.\n")
+            print(f"\n[{FileTopic} 토픽] - 디버깅: 중복이 아님을 확인함.\n")
             if IsDriverRun:
                 # 디시 자동 글쓰기 함수
                 SeleniumLoactionURL(
                     driver, 
                     f"[{CurrentTime()}] {FileTopic} - 글삭제 감지 알림",
-                    TextRecombination(TEXTMerge),
+                    TextRecombination(TEXTMerge, Usage_Performance_TEXT),
                     WebURL
                     )
 
@@ -608,10 +598,8 @@ def GallDataComparison(
             FuncManagement[FileTopic] = TEXTMerge
         
         else:
-            print(f"[{FileTopic} 토픽] - 디버깅: 중복을 확인함.\n")
-
-
-
+            print(f"\n[{FileTopic} 토픽] - 디버깅: 중복을 확인함.\n")
+            
 # 마이너 갤러리만 지원함.
 # URL1 = 탐지할 게시글 토픽
 # URL2 = 탐지한 결과를 업데이트할 곳
@@ -622,7 +610,7 @@ def GallDataComparison(
 # 2. 파일 저장 이름에 갤러리 ID 추가
 
 
-TimeMinute = 10 # 10분
+TimeMinute = 5 # 5분
 ReStartDelay = (60 * TimeMinute)
 print(f"\n약 {ReStartDelay:,.0f}초 (약 {ReStartDelay // 60:,.0f}분) 마다 실행됨\n만약 프로그램을 종료하고 싶다면 2초 정도 길게 'Ctrl+C'를 누르세요.")
 
@@ -677,6 +665,7 @@ while True:
             InitResponse(*param)
         
         # 시간 대기
+        print(f"\n마지막 탐지시간: {CurrentTime()}\n")
         time.sleep(ReStartDelay)
         
         
