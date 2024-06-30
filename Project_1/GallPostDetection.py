@@ -610,12 +610,12 @@ def GallDataComparison(
 # 2. 파일 저장 이름에 갤러리 ID 추가
 
 
-TimeMinute = 5 # 5분
+TimeMinute = 15 # 15분
 ReStartDelay = (60 * TimeMinute)
 print(f"\n약 {ReStartDelay:,.0f}초 (약 {ReStartDelay // 60:,.0f}분) 마다 실행됨\n만약 프로그램을 종료하고 싶다면 2초 정도 길게 'Ctrl+C'를 누르세요.")
 
 # 셀레니움 (갤 포스트 워라이트)
-driver, IsDriverRun = driverStart(True, True) # 드라이버 실행 여부, 헤드리스 모드 실행 실행
+driver, IsDriverRun = driverStart(False, True) # 드라이버 실행 여부, 헤드리스 모드 실행 실행
 
 
 # 함수 시작 관리

@@ -34,10 +34,9 @@ def UsagePerformance(interval = None):
     available_memory, used_memory, total_memory_percent = monitor_memory()
     sent_bytes, recv_bytes = monitor_network()
 
-    print("CPU 사용량: %s%%" % cpu_percent)
+    print("\nCPU 사용량: %s%%" % cpu_percent)
     print("Memory 사용량: %sMB (%s%%)| 사용 가능한 Memory: %sMB" % (available_memory, total_memory_percent, used_memory))
-    print("Network(송신): %sMB | Network(수신): %sMB" % (sent_bytes, recv_bytes))
-    print()
+    print("Network(송신): %sMB | Network(수신): %sMB\n" % (sent_bytes, recv_bytes))
 
     return cpu_percent, (available_memory, used_memory, total_memory_percent), (sent_bytes, recv_bytes)
 
